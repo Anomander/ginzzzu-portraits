@@ -253,6 +253,9 @@ const SETTINGS_GROUPS = [
       "portraitToneStrength",
       "portraitFocusHighlightStrength",
       "portraitShadowDimStrength",
+      "portraitBreathingEnabled",
+      "portraitBreathingStrength",
+      "portraitBreathingDurationMs",
       "portraitBlurEnabled",
       "portraitBlurStrength",
       "portraitBlurSpeed",
@@ -630,7 +633,42 @@ Hooks.once("init", () => {
     range: { min: 0, max: 1, step: 0.05 },
     requiresReload: true
   });
-  
+
+  reg("portraitBreathingEnabled", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBreathingEnabled.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBreathingEnabled.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: false,
+    onChange: () => globalThis.GinzzzuPortraits?.applyPortraitBreathing?.()
+  });
+
+  reg("portraitBreathingStrength", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBreathingStrength.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBreathingStrength.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 0.5,
+    range: { min: 0, max: 1.5, step: 0.05 },
+    requiresReload: false,
+    onChange: () => globalThis.GinzzzuPortraits?.applyPortraitBreathing?.()
+  });
+
+  reg("portraitBreathingDurationMs", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBreathingDurationMs.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBreathingDurationMs.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 10000,
+    range: { min: 100, max: 20000, step: 100 },
+    requiresReload: false,
+    onChange: () => globalThis.GinzzzuPortraits?.applyPortraitBreathing?.()
+  });
+
     reg("portraitFlipAccess", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFlipAccess.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFlipAccess.hint"),

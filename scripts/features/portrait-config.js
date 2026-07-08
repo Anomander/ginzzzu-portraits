@@ -1,5 +1,5 @@
 // features/portraitConfig.js
-import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE } from "../core/constants.js";
+import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE, FLAG_PORTRAIT_BREATHING_MULTIPLIER } from "../core/constants.js";
 import { getCustomEmotions } from "./custom-emotions.js";
 
 const PORTRAIT_CONFIG_TEMPLATE = `modules/${MODULE_ID}/templates/portrait-config.hbs`;
@@ -59,6 +59,9 @@ export async function configurePortrait(ev, actorSheet) {
   const currentHeightMultiplierRaw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
   const currentHeightMultiplier = typeof currentHeightMultiplierRaw === "number" ? currentHeightMultiplierRaw : 1;
 
+  const currentBreathingMultiplierRaw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_BREATHING_MULTIPLIER);
+  const currentBreathingMultiplier = typeof currentBreathingMultiplierRaw === "number" ? currentBreathingMultiplierRaw : 1;
+
   // Получаем кастомное изображение портрета
   const currentCustomImageRaw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_CUSTOM_IMAGE);
   const currentCustomImage = typeof currentCustomImageRaw === "string" ? currentCustomImageRaw : "";
@@ -71,6 +74,8 @@ export async function configurePortrait(ev, actorSheet) {
     notes,
     portraitHeightMultiplierLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitHeightMultiplier"),
     portraitHeightMultiplierHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitHeightMultiplierHint"),
+    portraitBreathingMultiplierLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitBreathingMultiplier"),
+    portraitBreathingMultiplierHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitBreathingMultiplierHint"),
     portraitCustomImageLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitCustomImage"),
     portraitCustomImagePlaceholder: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitCustomImagePlaceholder"),
     portraitCustomImageButtonHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitCustomImageButtonHint"),
@@ -83,6 +88,7 @@ export async function configurePortrait(ev, actorSheet) {
     displayName: currentName,
     placeholder: actor.name ?? "",
     portraitHeightMultiplier: currentHeightMultiplier,
+    portraitBreathingMultiplier: currentBreathingMultiplier,
     portraitCustomImage: currentCustomImage,
     showStandardEmotions,
 
@@ -142,6 +148,14 @@ export async function configurePortrait(ev, actorSheet) {
                 await actor.setFlag(MODULE_ID, "portraitHeightMultiplier", heightValue);
               } else {
                 await actor.unsetFlag(MODULE_ID, "portraitHeightMultiplier");
+              }
+
+              const breathingInput = html.find('input[name="portraitBreathingMultiplier"]').val();
+              const breathingValue = Number(breathingInput ?? 1);
+              if (Number.isFinite(breathingValue) && breathingValue >= 0) {
+                await actor.setFlag(MODULE_ID, "portraitBreathingMultiplier", breathingValue);
+              } else {
+                await actor.unsetFlag(MODULE_ID, "portraitBreathingMultiplier");
               }
 
               // Save custom portrait image
@@ -374,6 +388,37 @@ export async function configurePortrait(ev, actorSheet) {
             if (v === null) return;
             portraitHeightSlider.val(v);
             // reflect normalized value back to the number input
+            $(this).val(v);
+          });
+        }
+
+        // Sync the per-portrait breathing multiplier slider with its numeric input.
+        const breathingMultiplierSlider = html.find('input[name="portraitBreathingMultiplier"][type="range"]');
+        const breathingMultiplierDisplay = html.find('input.breathing-multiplier-value-display');
+
+        if (breathingMultiplierSlider.length && breathingMultiplierDisplay.length) {
+          const min = parseFloat(breathingMultiplierSlider.attr('min')) || 0;
+          const max = parseFloat(breathingMultiplierSlider.attr('max')) || 3;
+          const step = parseFloat(breathingMultiplierSlider.attr('step')) || 0.05;
+
+          const normalize = (v) => {
+            const n = Number(v);
+            if (!Number.isFinite(n)) return null;
+            let clamped = Math.max(min, Math.min(max, n));
+            clamped = Math.round((clamped - min) / step) * step + min;
+            return Number(clamped.toFixed(10));
+          };
+
+          breathingMultiplierSlider.on('input change', function() {
+            const v = normalize($(this).val());
+            if (v !== null) breathingMultiplierDisplay.val(v);
+          });
+
+          breathingMultiplierDisplay.on('input change blur', function() {
+            const raw = $(this).val();
+            const v = normalize(raw);
+            if (v === null) return;
+            breathingMultiplierSlider.val(v);
             $(this).val(v);
           });
         }

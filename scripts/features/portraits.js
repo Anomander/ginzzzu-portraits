@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_EMOTION_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE, FLAG_SHOW_STANDARD_EMOTIONS, EMOTIONS } from "../core/constants.js";
+import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_EMOTION_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_PORTRAIT_BREATHING_MULTIPLIER, EMOTIONS } from "../core/constants.js";
 import { configurePortrait } from "./portrait-config.js";
 import {
   PORTRAIT_KEYBINDINGS,
@@ -352,6 +352,127 @@ const FRAME = {
   function scheduleAfterAnimationSettles(durationMs, callback, settleMs = 180) {
     const delay = Math.max(0, Number(durationMs) || 0) + Math.max(0, Number(settleMs) || 0);
     setTimeout(() => runWhenBrowserIdle(callback), delay);
+  }
+
+  const PORTRAIT_BREATHING_ANIMATION_KEY = "__ginzzzuPortraitBreathingAnimation";
+  const PORTRAIT_BREATHING_DELAY_SPREAD_MS = 2400;
+
+  function clampNumber(value, min, max, fallback) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return fallback;
+    return Math.max(min, Math.min(max, number));
+  }
+
+  function getPortraitBreathingSettings() {
+    const read = (key, fallback) => {
+      try {
+        return game.settings.get(MODULE_ID, key);
+      } catch (e) {
+        return fallback;
+      }
+    };
+
+    const enabled = !!read("portraitBreathingEnabled", true);
+    const strength = clampNumber(read("portraitBreathingStrength", 0.5), 0, 1, 0.5);
+    return {
+      enabled: enabled && strength > 0,
+      strength,
+      durationMs: clampNumber(read("portraitBreathingDurationMs", 4200), 1800, 9000, 4200),
+      delaySpreadMs: PORTRAIT_BREATHING_DELAY_SPREAD_MS
+    };
+  }
+
+  function getPortraitBreathingMultiplier(actorId) {
+    if (!actorId) return 1;
+    try {
+      const actor = game.actors?.get(actorId);
+      const raw = actor ? foundry.utils.getProperty(actor, FLAG_PORTRAIT_BREATHING_MULTIPLIER) : null;
+      return clampNumber(raw, 0, 3, 1);
+    } catch (e) {
+      return 1;
+    }
+  }
+
+  function stopPortraitBreathing(wrapper) {
+    const animation = wrapper?.[PORTRAIT_BREATHING_ANIMATION_KEY];
+    if (animation) {
+      try { animation.cancel(); } catch (e) {}
+      delete wrapper[PORTRAIT_BREATHING_ANIMATION_KEY];
+    }
+
+    if (!wrapper) return;
+    delete wrapper.dataset.breathSignature;
+    wrapper.style.removeProperty("--ginzzzu-breathe-y");
+    wrapper.style.removeProperty("--ginzzzu-breathe-scale");
+  }
+
+  function applyPortraitBreathingToWrapper(wrapper, settings, index, total, { reroll = false } = {}) {
+    if (!wrapper) return;
+    const speedMultiplier = getPortraitBreathingMultiplier(wrapper.dataset.actorId);
+    if (!settings?.enabled || speedMultiplier <= 0) {
+      stopPortraitBreathing(wrapper);
+      return;
+    }
+
+    if (reroll || !wrapper.dataset.breathSeed) {
+      wrapper.dataset.breathSeed = String(Math.random());
+    }
+
+    const seed = clampNumber(wrapper.dataset.breathSeed, 0, 1, 0);
+    const spread = total > 1 ? settings.delaySpreadMs : 0;
+    const delayMs = spread > 0 ? -Math.round(seed * spread) : 0;
+    const durationMs = Math.max(600, Math.round(settings.durationMs / speedMultiplier));
+    const liftPx = 0.5 + (settings.strength * 3);
+    const scale = 1 + (settings.strength * 0.036);
+    const signature = [
+      settings.strength.toFixed(3),
+      durationMs,
+      Math.round(delayMs),
+      speedMultiplier.toFixed(3),
+      liftPx.toFixed(3),
+      scale.toFixed(5),
+      index,
+      total
+    ].join("|");
+
+    if (wrapper.dataset.breathSignature === signature && wrapper[PORTRAIT_BREATHING_ANIMATION_KEY]) {
+      return;
+    }
+
+    stopPortraitBreathing(wrapper);
+    wrapper.dataset.breathSignature = signature;
+    wrapper.style.setProperty("--ginzzzu-breathe-y", "0px");
+    wrapper.style.setProperty("--ginzzzu-breathe-scale", "1");
+
+    try {
+      wrapper[PORTRAIT_BREATHING_ANIMATION_KEY] = wrapper.animate(
+        [
+          { "--ginzzzu-breathe-y": "0px", "--ginzzzu-breathe-scale": "1" },
+          { "--ginzzzu-breathe-y": `${liftPx.toFixed(3)}px`, "--ginzzzu-breathe-scale": scale.toFixed(5) },
+          { "--ginzzzu-breathe-y": "0px", "--ginzzzu-breathe-scale": "1" }
+        ],
+        {
+          duration: durationMs,
+          delay: delayMs,
+          iterations: Infinity,
+          easing: "ease-in-out"
+        }
+      );
+    } catch (e) {
+      wrapper.style.setProperty("--ginzzzu-breathe-y", "0px");
+      wrapper.style.setProperty("--ginzzzu-breathe-scale", "1");
+    }
+  }
+
+  function applyPortraitBreathing(options = {}) {
+    const root = options.root || getDomHud();
+    if (!root) return;
+
+    const wrappers = Array.from(root.querySelectorAll(".ginzzzu-portrait-wrapper"));
+    const settings = getPortraitBreathingSettings();
+    wrappers.forEach((wrapper, index) => {
+      applyPortraitBreathingToWrapper(wrapper, settings, index, wrappers.length, options);
+    });
   }
 
   // ---- DOM HUD внутри #interface ----
@@ -2459,6 +2580,7 @@ function _onPortraitClick(ev) {
 
     // после перераскладки обновим "тени"/подсветку (на случай изменения порядка)
     _applyPortraitFocus();
+    applyPortraitBreathing({ root });
     // обновим позиции именных плашек
     try { updateNamePositions(); } catch (e) {}
   }
@@ -3262,8 +3384,9 @@ Hooks.once("ready", () => {
       const heightMultiplierChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
       const emotionHeightMultiplierChanged = foundry.utils.hasProperty(changes, FLAG_EMOTION_HEIGHT_MULTIPLIER);
       const customImageChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_CUSTOM_IMAGE);
+      const breathingMultiplierChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_BREATHING_MULTIPLIER);
 
-      if (!emotionChanged && !customEmotionsChanged && !heightMultiplierChanged && !emotionHeightMultiplierChanged && !customImageChanged) return;
+      if (!emotionChanged && !customEmotionsChanged && !heightMultiplierChanged && !emotionHeightMultiplierChanged && !customImageChanged && !breathingMultiplierChanged) return;
 
       const imgEl = wrapper.querySelector("img.ginzzzu-portrait");
       if (!imgEl) return;
@@ -3285,6 +3408,10 @@ Hooks.once("ready", () => {
       // If height multiplier changed, trigger relayout
       if (heightMultiplierChanged || emotionHeightMultiplierChanged) {
         relayoutDomHud();
+      }
+
+      if (breathingMultiplierChanged) {
+        applyPortraitBreathing({ root });
       }
 
     } catch (e) {
@@ -3631,6 +3758,7 @@ Hooks.once("ready", () => {
   },
   closeAllLocalPortraits,
   getActivePortraits,
+  applyPortraitBreathing,
   refreshDisplayNames: refreshPortraitDisplayNames
   };
 

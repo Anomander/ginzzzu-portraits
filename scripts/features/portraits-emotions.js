@@ -278,6 +278,9 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUS
     // 5) Подсветка активной кнопки
     // -------------------------
     _syncToolbarActive(wrap, def.key);
+    globalThis.GinzzzuPortraits?.applyPortraitBreathing?.({
+      root: wrap.closest?.("#ginzzzu-portrait-layer")
+    });
   }
 
 

@@ -4,6 +4,30 @@
   initial-value: 1;
 }
 
+@property --shakeX {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --bobY {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --pulse {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+@property --tilt {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
 @property --ginzzzu-drag-x {
   syntax: "<length>";
   inherits: true;
@@ -46,7 +70,19 @@
   initial-value: 1;
 }
 
+@property --ginzzzu-breathe-scale {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
 @property --ginzzzu-drag-lift {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --ginzzzu-breathe-y {
   syntax: "<length>";
   inherits: true;
   initial-value: 0px;

@@ -46,6 +46,8 @@
       "note": "This name will be used in player UI and can differ from the actor's real name. Leave the field empty to use the actual name.",
       "portraitHeightMultiplier": "Portrait Height Multiplier",
       "portraitHeightMultiplierHint": "Relative height multiplier for this portrait (0 = 0%, 1 = 100%, 2 = 200%, etc.). Default: 1",
+      "portraitBreathingMultiplier": "Breathing animation speed multiplier",
+      "portraitBreathingMultiplierHint": "Per-character speed multiplier for the breathing animation. 1 = normal speed, 2 = twice as fast, 0 = no breathing for this portrait.",
       "portraitCustomImage": "Custom Portrait Image",
       "portraitCustomImagePlaceholder": "path/to/portrait.webp",
       "portraitCustomImageButtonHint": "Select Portrait Image",
@@ -160,6 +162,18 @@
       "portraitShadowDimStrength": {
       "name": "Portraits: Shadow Depth (0..1)",
       "hint": "0 — no change, 1 — most noticeable correction"
+      },
+      "portraitBreathingEnabled": {
+        "name": "Portraits: breathing animation",
+        "hint": "Adds a barely noticeable idle breathing motion to displayed portraits."
+      },
+      "portraitBreathingStrength": {
+        "name": "Portrait breathing: strength",
+        "hint": "How visible the breathing motion is. Lower values are calmer."
+      },
+      "portraitBreathingDurationMs": {
+        "name": "Portrait breathing: cycle duration (ms)",
+        "hint": "How long one breathing cycle lasts in milliseconds."
       },
       "portraitFlipAccess": {
       "name": "Who can flip portraits",

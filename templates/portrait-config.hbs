@@ -59,6 +59,29 @@
     <p class="notes">{{portraitHeightMultiplierHint}}</p>
   </div>
 
+  <div class="form-group portrait-breathing-multiplier-section">
+    <label>{{portraitBreathingMultiplierLabel}}</label>
+    <div class="form-fields">
+      <input
+        type="range"
+        name="portraitBreathingMultiplier"
+        value="{{portraitBreathingMultiplier}}"
+        min="0"
+        max="3"
+        step="0.05"
+      />
+      <input
+        type="number"
+        class="breathing-multiplier-value-display"
+        value="{{portraitBreathingMultiplier}}"
+        min="0"
+        max="3"
+        step="0.05"
+      />
+    </div>
+    <p class="notes">{{portraitBreathingMultiplierHint}}</p>
+  </div>
+
   <hr class="section-divider" />
 
   <!-- Кастомные эмоции -->
