@@ -130,25 +130,36 @@ jobs:
           # additional files or directories!
 
 
+      - name: Upload Module Artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: module-archive
+          path: |
+            module.json
+            module.zip
+
       # Update the GitHub release with the manifest and module archive files.
       - name: Update Release With Files
         id: create_version_release
+        if: github.event_name == 'release'
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          name: ${{ github.event.release.name || github.ref_name }}
-          draft: ${{ github.event.release.unpublished || false }}
-          prerelease: ${{ github.event.release.prerelease || false }}
+          name: ${{ github.event.release.name }}
+          draft: ${{ github.event.release.unpublished }}
+          prerelease: ${{ github.event.release.prerelease }}
           token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: './module.json, ./module.zip'
-          tag: ${{ github.event.release.tag_name || github.ref_name }}
-          body: ${{ github.event.release.body || '' }}
+          tag: ${{ github.event.release.tag_name }}
+          body: ${{ github.event.release.body }}
 
 
       # Update FoundryVTT Website with new module release information.
       - name: Publish Module to FoundryVTT Website
+        if: github.event_name == 'release'
         uses: djlechuck/foundryvtt-publish-package-action@v1
         with:
           token: ${{ secrets.FOUNDRY_RELEASE_TOKEN }}
-          manifest: https://github.com/${{github.repository}}/releases/download/${{github.event.release.tag_name || github.ref_name}}/module.json
-          notes: https://github.com/${{github.repository}}/releases/tag/${{github.event.release.tag_name || github.ref_name}}
+          manifest: https://github.com/${{github.repository}}/releases/download/${{github.event.release.tag_name}}/module.json
+          notes: https://github.com/${{github.repository}}/releases/tag/${{github.event.release.tag_name}}
