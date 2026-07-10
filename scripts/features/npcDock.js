@@ -154,8 +154,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
   }
 
   function makeTooltip(actor) {
-    // Берём кастомное отображаемое имя, если оно есть
-    const name = (actor.name || "");
+    const name = getDockDisplayName(actor);
 
     // Если имени нет вообще — не показываем подсказку
     if (!name) return "";
@@ -167,7 +166,11 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
   function getDockDisplayName(actor) {
     const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
     const customName = typeof rawDisplayName === "string" ? rawDisplayName.trim() : "";
-    return customName || actor?.name || "";
+    if (customName) return customName;
+    if (game.hnn?.getReplacementInfo) {
+      return game.hnn.getReplacementInfo(actor)?.displayName || actor?.name || "";
+    }
+    return actor?.name || "";
   }
 
   function collectActorFoldersWithPC() {
@@ -480,7 +483,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       const bFav = !!foundry.utils.getProperty(b, `flags.${MODULE_ID}.pcFavorite`);
       if (aFav !== bFav) return bFav ? 1 : -1;
       // затем по имени
-      return (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" });
+      return (getDockDisplayName(a)||"").localeCompare(getDockDisplayName(b)||"", game.i18n.lang || undefined, { sensitivity:"base" });
     });
     const fragment = document.createDocumentFragment();
     for (const a of pcs) {
@@ -493,7 +496,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
       const img = document.createElement("img");
       img.src = a.img || a.prototypeToken?.texture?.src || "icons/svg/mystery-man.svg";
-      img.alt = a.name || "Player";
+      img.alt = getDockDisplayName(a) || "Player";
       btn.appendChild(img);
 
       // Make card draggable to allow dropping an Actor onto the canvas
@@ -575,11 +578,10 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       }
     }
 
-    // поиск
     const q = (getSearchText() || "").trim().toLowerCase();
     if (q) {
       npcs = npcs.filter(a => {
-        const name = (a.name || "").toLowerCase();
+        const name = (getDockDisplayName(a) || "").toLowerCase();
         const path = (getFolderPath(a) || "").toLowerCase();
         return name.includes(q) || path.includes(q);
       });
@@ -611,11 +613,11 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
         const pa = getFolderPath(a), pb = getFolderPath(b);
         const byFolder = (pa || "").localeCompare(pb || "", game.i18n.lang || undefined, { sensitivity:"base" });
         if (byFolder !== 0) return byFolder;
-        return (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" });
+        return (getDockDisplayName(a)||"").localeCompare(getDockDisplayName(b)||"", game.i18n.lang || undefined, { sensitivity:"base" });
       });
     } else {
       rest.sort((a, b) =>
-        (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" })
+        (getDockDisplayName(a)||"").localeCompare(getDockDisplayName(b)||"", game.i18n.lang || undefined, { sensitivity:"base" })
       );
     }
 
@@ -629,7 +631,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
       const img = document.createElement("img");
       img.src = a.img || a.prototypeToken?.texture?.src || "icons/svg/mystery-man.svg";
-      img.alt = a.name || "NPC";
+      img.alt = getDockDisplayName(a) || "NPC";
       btn.appendChild(img);
 
       const displayName = getDockDisplayName(a);
@@ -681,7 +683,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
     // сортируем по имени
     favs.sort((a, b) =>
-      (a.name || "").localeCompare(b.name || "", game.i18n.lang || undefined, { sensitivity: "base" })
+      (getDockDisplayName(a) || "").localeCompare(getDockDisplayName(b) || "", game.i18n.lang || undefined, { sensitivity: "base" })
     );
 
     containerFavs.style.display = "";
@@ -696,7 +698,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
       const img = document.createElement("img");
       img.src = a.img || a.prototypeToken?.texture?.src || "icons/svg/mystery-man.svg";
-      img.alt = a.name || "NPC";
+      img.alt = getDockDisplayName(a) || "NPC";
       btn.appendChild(img);
 
       // включён ли портрет
@@ -760,7 +762,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
         mini.style.display = 'none';
         return;
       }
-      active.sort((a,b) => (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity: 'base' }));
+      active.sort((a,b) => (getDockDisplayName(a)||"").localeCompare(getDockDisplayName(b)||"", game.i18n.lang || undefined, { sensitivity: 'base' }));
       mini.style.display = '';
 
       const fragment = document.createDocumentFragment();
@@ -768,11 +770,11 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
         const btn = document.createElement('div');
         btn.className = 'dock-icon';
         btn.dataset.actorId = a.id;
-        btn.title = makeTooltip(a) || (a.name || "");
+        btn.title = makeTooltip(a) || (getDockDisplayName(a) || "");
 
         const img = document.createElement('img');
         img.src = a.img || a.prototypeToken?.texture?.src || 'icons/svg/mystery-man.svg';
-        img.alt = a.name || '';
+        img.alt = getDockDisplayName(a) || '';
         img.draggable = false;
         btn.appendChild(img);
 
